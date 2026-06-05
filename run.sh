@@ -92,7 +92,16 @@ $ENV_PY "$SCRIPTS/create_draft.py" "$PROJ" "$DRAFT_NAME" --index $N
 
 echo ""
 echo "========================================="
+
+# 第9步：生成封面
+echo ""
+echo "🖼️  [9/9] 生成封面..."
+$ENV_PY "$SCRIPTS/generate_cover.py" "$PROJ" "$DRAFT_NAME" --index $N
+
+echo ""
+echo "========================================="
 echo " ✅ 第${N}组完成！"
 echo "    草稿名: $DRAFT_NAME"
+echo "    封面: 开头第一帧 + 项目名称"
 echo "    打开剪映 → 本地草稿 → 预览导出"
 echo "========================================="
