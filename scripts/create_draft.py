@@ -242,7 +242,18 @@ def main():
     BGM淡出 = 1000000  # 1秒淡出（微秒）
     
     if os.path.isdir(BGM目录):
-        BGM文件列表 = sorted([f for f in os.listdir(BGM目录) if f.lower().endswith(('.mp3', '.wav', '.m4a', '.aac', '.aiff'))])
+        # 筛选纯音频文件（排除录屏等带视频轨道的文件）
+        _候选 = [f for f in os.listdir(BGM目录) if f.lower().endswith(('.mp3', '.wav', '.m4a', '.aac', '.aiff'))]
+        BGM文件列表 = []
+        for _f in _候选:
+            _路径 = os.path.join(BGM目录, _f)
+            _r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type', '-of', 'default=noprint_wrappers=1:nokey=1', _路径],
+                              capture_output=True, text=True, timeout=5)
+            _类型 = _r.stdout.strip().split('\n')
+            if 'video' not in _类型:
+                BGM文件列表.append(_f)
+        BGM文件列表.sort()
+        print(f'[BGM] 检测到 {len(BGM文件列表)} 个纯音频文件: {BGM文件列表}')
         if BGM文件列表:
             BGM文件 = BGM文件列表[0]  # 取第一个
             BGM路径 = os.path.join(BGM目录, BGM文件)
@@ -271,6 +282,7 @@ def main():
                     )
                     bgm_seg.add_fade(BGM淡入, BGM淡出)
                     sf.add_segment(bgm_seg, bgm_track_name)
+                    print(f'[BGM] {BGM文件} (音量{BGM音量:.0%}, 淡入1s, 淡出1s)')
                 else:
                     # BGM太短，循环播放填满视频时长
                     循环次数 = (视频总时长 // BGM总时长) + 1
