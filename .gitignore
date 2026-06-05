@@ -2,3 +2,10 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+*.wav
+*.mp4
+*.mov
+*.srt
+*.json
+素材时长.json
+素材列表_*.json
