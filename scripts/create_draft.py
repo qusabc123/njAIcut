@@ -235,6 +235,67 @@ def main():
             audio_track_name
         )
 
+    # ===== BGM 背景音乐轨道 =====
+    BGM目录 = os.path.join(project_dir, 'BGM')
+    BGM音量 = 0.15  # 配音的15%，避免盖过人声
+    BGM淡入 = 1000000  # 1秒淡入（微秒）
+    BGM淡出 = 1000000  # 1秒淡出（微秒）
+    
+    if os.path.isdir(BGM目录):
+        BGM文件列表 = sorted([f for f in os.listdir(BGM目录) if f.lower().endswith(('.mp3', '.wav', '.m4a', '.aac', '.aiff'))])
+        if BGM文件列表:
+            BGM文件 = BGM文件列表[0]  # 取第一个
+            BGM路径 = os.path.join(BGM目录, BGM文件)
+            BGM_剪映路径 = os.path.join(aa, BGM文件)
+            shutil.copy2(BGM路径, BGM_剪映路径)
+            BGM素材 = AudioMaterial(BGM_剪映路径)
+            BGM总时长 = int(BGM素材.duration)
+            视频总时长 = cur  # 当前视频总长
+            
+            # 创建BGM轨道
+            sf.add_track(track_type=TrackType.audio, track_name="BGM", relative_index=2)
+            bgm_track_name = None
+            for tid, t in sf.tracks.items():
+                if t.track_type == TrackType.audio and t.name == "BGM":
+                    bgm_track_name = tid
+                    break
+            
+            if bgm_track_name:
+                # BGM从视频开始到结束，音量降低
+                if BGM总时长 >= 视频总时长:
+                    # BGM够长，直接裁剪
+                    bgm_seg = AudioSegment(
+                        BGM_剪映路径,
+                        target_timerange=Timerange(0, 视频总时长),
+                        volume=BGM音量,
+                    )
+                    bgm_seg.add_fade(BGM淡入, BGM淡出)
+                    sf.add_segment(bgm_seg, bgm_track_name)
+                else:
+                    # BGM太短，循环播放填满视频时长
+                    循环次数 = (视频总时长 // BGM总时长) + 1
+                    pos = 0
+                    for _ in range(循环次数):
+                        if pos >= 视频总时长:
+                            break
+                        剩余时长 = 视频总时长 - pos
+                        本段时长 = min(BGM总时长, 剩余时长)
+                        seg = AudioSegment(
+                            BGM_剪映路径,
+                            target_timerange=Timerange(pos, 本段时长),
+                            volume=BGM音量,
+                        )
+                        # 只在第一段加淡入，最后一段加淡出
+                        if pos == 0:
+                            seg.add_fade(BGM淡入, 0)
+                        elif pos + 本段时长 >= 视频总时长:
+                            seg.add_fade(0, BGM淡出)
+                        sf.add_segment(seg, bgm_track_name)
+                        pos += 本段时长
+                    print(f'[BGM] {BGM文件} (循环{循环次数}次, 音量{BGM音量:.0%})')
+    else:
+        print('[BGM] 未找到BGM目录，跳过')
+    
     # ===== 字幕轨道（金陵体、字号11、白色、Y=-500、阴影#3b3b3b） =====
     字幕文件 = find_字幕(project_dir, group_index)
     if 字幕文件:
